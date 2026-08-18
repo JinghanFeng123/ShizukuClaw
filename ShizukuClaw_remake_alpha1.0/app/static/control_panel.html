@@ -7902,7 +7902,7 @@
             updateSkillMarketDiagnosticsText();
             if (showToast) toastr.success(`已同步 GitHub Skill：${skillMarketCache.length}`);
         } catch (e) {
-            if (showToast) toastr.error(`同步失败: ' + e.message);
+            if (showToast) toastr.error('同步失败: ' + e.message);
         } finally {
             skillMarketSyncInflight = false;
         }
