@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import socket
 import sqlite3
+import subprocess
 import threading
 import time
 from datetime import datetime
@@ -480,6 +482,153 @@ class StorageAdapter:
             "sqlite_path": sqlite_path,
             "ready": True,
         }
+
+
+def probe_database(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+    data = dict(cfg or {})
+    engine = str(data.get("engine") or settings.storage_driver or "sqlite").lower()
+    host = str(data.get("host") or "")
+    port = int(data.get("port") or (5432 if engine.startswith("postgres") else 3306 if engine == "mysql" else 0))
+    result = {
+        "engine": engine,
+        "host": host,
+        "port": port,
+        "ping": {"ok": False, "detail": "未执行"},
+        "tcp": {"ok": False, "detail": "未执行"},
+        "db_login": {"ok": False, "detail": "未执行"},
+        "overall_ok": False,
+    }
+    if engine == "sqlite":
+        raw = data.get("database") or settings.get("storage", {}).get("sqlite", {}).get("path") or "data/storage/agent.db"
+        path = Path(str(raw))
+        if not path.is_absolute():
+            path = ROOT / path
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(str(path))
+            conn.execute("SELECT 1")
+            conn.close()
+            result["ping"] = {"ok": True, "detail": "本地文件无需 ping"}
+            result["tcp"] = {"ok": True, "detail": str(path)}
+            result["db_login"] = {"ok": True, "detail": f"SQLite 可读写: {path}"}
+            result["overall_ok"] = True
+        except Exception as exc:
+            result["db_login"] = {"ok": False, "detail": str(exc)}
+        return result
+
+    if not host:
+        result["ping"] = {"ok": False, "detail": "host 为空"}
+        result["tcp"] = {"ok": False, "detail": "host 为空"}
+        result["db_login"] = {"ok": False, "detail": "host 为空"}
+        return result
+
+    try:
+        cmd = ["ping", "-n", "1", "-w", "2000", host] if os_is_windows() else ["ping", "-c", "1", "-W", "2", host]
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, check=False)
+        result["ping"] = {"ok": proc.returncode == 0, "detail": "ping 成功" if proc.returncode == 0 else ((proc.stderr or proc.stdout or "ping 失败")[:200])}
+    except Exception as exc:
+        result["ping"] = {"ok": False, "detail": f"ping 异常: {exc}"}
+
+    try:
+        with socket.create_connection((host, port), timeout=3):
+            result["tcp"] = {"ok": True, "detail": f"TCP {host}:{port} 可达"}
+    except Exception as exc:
+        result["tcp"] = {"ok": False, "detail": f"TCP 连接失败: {exc}"}
+
+    try:
+        if engine.startswith("postgres"):
+            import psycopg2  # type: ignore
+
+            conn = psycopg2.connect(
+                host=host,
+                port=port,
+                user=data.get("user") or "postgres",
+                password=data.get("password") or "",
+                dbname=data.get("database") or "shizukuclaw",
+                connect_timeout=5,
+            )
+            conn.close()
+        else:
+            import pymysql  # type: ignore
+
+            conn = pymysql.connect(
+                host=host,
+                port=port,
+                user=data.get("user") or "root",
+                password=data.get("password") or "",
+                database=data.get("database") or "shizukuclaw",
+                connect_timeout=5,
+            )
+            conn.close()
+        result["db_login"] = {"ok": True, "detail": "数据库登录成功"}
+    except Exception as exc:
+        result["db_login"] = {"ok": False, "detail": f"数据库登录失败: {exc}"}
+    result["overall_ok"] = bool(result["tcp"]["ok"] and result["db_login"]["ok"])
+    return result
+
+
+def os_is_windows() -> bool:
+    import os
+
+    return os.name == "nt"
+
+
+def run_sql(query: str, cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+    sql = (query or "").strip()
+    if not sql:
+        return {"success": False, "error": "SQL 为空"}
+    lowered = sql.lstrip().lower()
+    if not lowered.startswith(("select", "show", "pragma", "explain", "describe", "desc")):
+        return {"success": False, "error": "控制台只允许 SELECT / SHOW / PRAGMA / EXPLAIN"}
+    data = dict(cfg or settings.get("database") or {})
+    engine = str(data.get("engine") or settings.storage_driver or "sqlite").lower()
+    try:
+        if engine == "sqlite":
+            raw = data.get("database") or settings.get("storage", {}).get("sqlite", {}).get("path") or "data/storage/agent.db"
+            path = Path(str(raw))
+            if not path.is_absolute():
+                path = ROOT / path
+            conn = sqlite3.connect(str(path))
+            conn.row_factory = sqlite3.Row
+            cur = conn.execute(sql)
+            rows = [dict(row) for row in cur.fetchall()]
+            conn.close()
+            return {"success": True, "data": rows, "rowcount": len(rows)}
+        if engine.startswith("postgres"):
+            import psycopg2
+            import psycopg2.extras
+
+            conn = psycopg2.connect(
+                host=data.get("host") or "127.0.0.1",
+                port=int(data.get("port") or 5432),
+                user=data.get("user") or "postgres",
+                password=data.get("password") or "",
+                dbname=data.get("database") or "shizukuclaw",
+                connect_timeout=5,
+            )
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(sql)
+                rows = list(cur.fetchall())
+            conn.close()
+            return {"success": True, "data": rows, "rowcount": len(rows)}
+        import pymysql
+
+        conn = pymysql.connect(
+            host=data.get("host") or "127.0.0.1",
+            port=int(data.get("port") or 3306),
+            user=data.get("user") or "root",
+            password=data.get("password") or "",
+            database=data.get("database") or "shizukuclaw",
+            connect_timeout=5,
+            cursorclass=pymysql.cursors.DictCursor,
+        )
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            rows = list(cur.fetchall())
+        conn.close()
+        return {"success": True, "data": rows, "rowcount": len(rows)}
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}
 
 
 def _safe_json(value: Any) -> Any:

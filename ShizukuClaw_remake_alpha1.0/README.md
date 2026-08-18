@@ -52,6 +52,4 @@ storage:
 
 ## 人格
 
-人格是 Skill，不是写死的子图。目录：`plugins/skills/*/SKILL.md`
-
-内置：`companion` / `engineer` / `operator` / `iot`
+人格在 `plugins/personas/`，不是 companion/engineer 这类模板。

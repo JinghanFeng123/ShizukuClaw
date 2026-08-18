@@ -68,7 +68,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "work_mode": {"enabled": False},
     "unified_api": {"port": 8000},
     "agent": {
-        "default_persona": "companion",
+        "default_persona": "shizuku",
         "thread_id": "default",
     },
 }

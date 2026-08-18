@@ -280,9 +280,28 @@ async def save_config(body: ConfigUpdate) -> dict[str, Any]:
             "model": llm.get("model") or "",
         }
     }
+    if incoming.get("database"):
+        db = dict(incoming["database"])
+        engine = str(db.get("engine") or "sqlite").lower()
+        incoming["storage"] = {
+            **(settings.get("storage") or {}),
+            "driver": "postgresql" if engine.startswith("postgres") else engine,
+        }
+        if engine in {"mysql", "postgresql", "postgres"}:
+            key = "postgresql" if engine.startswith("postgres") else "mysql"
+            incoming["storage"][key] = {
+                "host": db.get("host") or "127.0.0.1",
+                "port": int(db.get("port") or (5432 if engine.startswith("postgres") else 3306)),
+                "user": db.get("user") or "",
+                "password": db.get("password") or "",
+                "database": db.get("database") or "shizukuclaw",
+            }
     settings.update(incoming)
     logger.info("config updated: %s", list(incoming.keys()))
-    return {"success": True}
+    from app.storage.adapter import probe_database
+
+    db_test = probe_database(incoming.get("database") or settings.get("database") or {})
+    return {"success": True, "database_test": db_test}
 
 
 @app.get("/api/records")

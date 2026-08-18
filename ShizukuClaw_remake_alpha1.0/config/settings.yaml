@@ -9,5 +9,5 @@ llm:
   api_key: ""
 
 agent:
-  default_persona: companion
+  default_persona: shizuku
   thread_id: default

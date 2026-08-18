@@ -34,8 +34,17 @@ class AgentLoop:
         thread = thread_id or f"persona:{current}"
         checkpoint = self.storage.load_checkpoint(thread, current) or {"messages": []}
         history = list(checkpoint.get("messages") or [])
-        user_content = self._compose_user_content(message, image, attachments)
+        user_content = self._compose_user_content(message, None, None)
+        extras = []
+        if image or _collect_images(image, attachments):
+            extras.append("用户发了图片，当前模型按纯文本处理，已忽略图片内容。")
+        for item in attachments or []:
+            name = str(item.get("name") or item.get("filename") or "attachment")
+            extras.append(f"[附件: {name}]")
+        if extras:
+            user_content = "\n".join([str(user_content)] + extras).strip()
         history.append({"role": "user", "content": user_content})
+        history[:] = [_sanitize_history(item) for item in history]
         memories = self.storage.search_memories(message or current, persona=current, top_k=5)
         memory_text = "\n".join(f"- {item.get('content')}" for item in memories) or "暂无长期记忆。"
         persona_data = load_persona(f"{current}.json") or {}
@@ -45,15 +54,8 @@ class AgentLoop:
             prompt += "\n\n[工作模式] 允许执行文件与工具操作，但仍按当前人格说话。"
         else:
             prompt += "\n\n[娱乐模式] 不要执行危险系统操作，以当前人格正常聊天。"
-        vision = model_supports_vision()
-        if not vision:
-            prompt += "\n\n[视觉] 当前主模型不支持看图。不要调用 read_file 读取 png/jpg/gif/webp，也不要提 image.png。"
-            if _collect_images(image, attachments):
-                history[-1]["content"] = (
-                    f"{_content_to_text(user_content)}\n\n当前模型不能看图，附件已忽略。"
-                )
-            history[:] = [_sanitize_history(item) for item in history]
-        reply, traces, engine = self._run_loop(prompt, memory_text, history, current, vision=vision)
+        prompt += "\n\n不要读取或提及图片文件。"
+        reply, traces, engine = self._run_loop(prompt, memory_text, history, current, vision=False)
         history.append({"role": "assistant", "content": reply})
         self.storage.save_checkpoint(thread, current, {"messages": history[-40:]})
         self.storage.add_chat_record(current, "user", message or _content_to_text(user_content))
@@ -128,7 +130,7 @@ class AgentLoop:
                 ),
             }
         ]
-        outgoing = history[-12:] if vision else [_sanitize_history(item) for item in history[-12:]]
+        outgoing = [_sanitize_history(item) for item in history[-12:]]
         messages.extend(outgoing)
         traces: list[dict[str, Any]] = []
         for _ in range(MAX_TOOL_ROUNDS):

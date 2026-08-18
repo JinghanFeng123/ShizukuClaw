@@ -84,10 +84,7 @@ const personaOptions = computed(() =>
   personas.value.length
     ? personas.value
     : [
-        { skill_id: "companion", name: "陪伴人格" },
-        { skill_id: "engineer", name: "工程人格" },
-        { skill_id: "operator", name: "运维人格" },
-        { skill_id: "iot", name: "物联人格" }
+        { skill_id: "shizuku", name: "Shizuku" }
       ]
 );
 

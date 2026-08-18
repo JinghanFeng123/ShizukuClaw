@@ -44,7 +44,7 @@ export const useAppStore = defineStore("app", {
     counter: 0,
     apiBase: API_BASE || "/",
     personas: [] as Persona[],
-    currentPersona: "companion",
+    currentPersona: "shizuku",
     loading: false,
     lastReply: "",
     memoryText: "",

@@ -596,8 +596,19 @@ async def gateway_diagnose():
 
 
 @router.post("/api/database/query")
-async def database_query():
-    return {"success": True, "rows": get_storage().list_records(limit=50)}
+async def database_query(payload: dict[str, Any] | None = None):
+    from app.storage.adapter import run_sql
+
+    data = payload or {}
+    return run_sql(str(data.get("query") or ""), data.get("database") if isinstance(data.get("database"), dict) else None)
+
+
+@router.post("/api/database/test")
+async def database_test(payload: dict[str, Any] | None = None):
+    from app.storage.adapter import probe_database
+
+    result = probe_database(payload or {})
+    return {"success": bool(result.get("overall_ok")), "database_test": result}
 
 
 @router.post("/api/run_mode")

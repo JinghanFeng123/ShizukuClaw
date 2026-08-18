@@ -97,7 +97,7 @@ def tool_write_file(path: str, content: str) -> str:
     return f"已写入 {path} ({len(content or '')} chars)"
 
 
-def tool_search_memory(query: str, persona: str = "companion") -> str:
+def tool_search_memory(query: str, persona: str = "shizuku") -> str:
     items = get_storage().search_memories(query or "", persona=persona, top_k=5)
     if not items:
         return "没有找到相关记忆。"
@@ -113,7 +113,7 @@ def tool_run_local_agent(agent: str, prompt: str) -> str:
     return str(result.get("output") or "(无输出)")
 
 
-def tool_add_memory(content: str, persona: str = "companion") -> str:
+def tool_add_memory(content: str, persona: str = "shizuku") -> str:
     if not content.strip():
         return "记忆内容为空。"
     get_storage().add_memory(persona, content.strip(), kind="long_term")

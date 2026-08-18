@@ -10,8 +10,7 @@ ShizukuClaw Remake Alpha 1.0 是对原项目的前后端分离重构，不是把
 
 - 后端从 Flask 巨石入口改成 FastAPI：`app/main.py`
 - 智能体编排改成 LangGraph 监督者 + 人格路由；没装 LangGraph 时自动走本地回退引擎
-- 多人格不再写死在代码里，而是 Skill：`plugins/skills/*/SKILL.md`
-- 内置人格：`companion`（陪伴）、`engineer`（工程）、`operator`（运维）、`iot`（物联）
+- 人格来自 `plugins/personas/`，不是写死的 companion/engineer 模板
 - MCP 改为可扫描插件：`plugins/mcp/`
 - 默认单文件存储 SQLite：`data/storage/agent.db`（含对话、检查点、向量记忆）
 - MySQL / PostgreSQL 作为可选驱动，改 `config/storage.yaml` 的 `storage.driver` 即可

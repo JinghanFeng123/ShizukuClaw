@@ -1520,6 +1520,7 @@
                                         <div class="col-md-4 col-lg-3">
                                             <label class="form-label">数据库类型</label>
                                             <select class="form-select" name="db_engine" id="db_engine" onchange="applySuggestedDbPortForEngine()" title="数据库类型" aria-label="数据库类型">
+                                                <option value="sqlite">SQLite</option>
                                                 <option value="mysql">MySQL</option>
                                                 <option value="postgresql">PostgreSQL</option>
                                             </select>
@@ -4592,15 +4593,19 @@
                 dbForm.elements['db_user'].value = data.database.user || '';
                 dbForm.elements['db_password'].value = data.database.password || '';
                 dbForm.elements['db_name'].value = data.database.database || '';
-                const engRaw = String(data.database.engine || 'mysql').toLowerCase();
+                const engRaw = String(data.database.engine || 'sqlite').toLowerCase();
                 const isPg = (engRaw === 'postgresql' || engRaw === 'postgres' || engRaw === 'pg');
                 const engEl = document.getElementById('db_engine');
-                if (engEl) engEl.value = isPg ? 'postgresql' : 'mysql';
+                if (engEl) {
+                    if (engRaw === 'sqlite') engEl.value = 'sqlite';
+                    else if (isPg) engEl.value = 'postgresql';
+                    else engEl.value = 'mysql';
+                }
                 const portEl = document.getElementById('db_port');
                 if (portEl) {
                     const p = data.database.port;
                     if (p === undefined || p === null || p === '') {
-                        portEl.value = isPg ? 5432 : 3306;
+                        portEl.value = engRaw === 'sqlite' ? '' : (isPg ? 5432 : 3306);
                     } else {
                         portEl.value = p;
                     }
@@ -5551,8 +5556,39 @@
     }
 
     async function testDbConnection() {
-        // Implement a simple check via query
-        runSqlQuery('SELECT 1');
+        const resArea = document.getElementById('sql-result-area');
+        if (resArea) resArea.innerHTML = 'Testing...';
+        try {
+            const payload = {
+                engine: document.getElementById('db_engine')?.value || 'sqlite',
+                port: parseInt(document.getElementById('db_port')?.value || '0', 10) || 0,
+                host: document.getElementById('db_host')?.value || '',
+                user: document.getElementById('db_user')?.value || '',
+                password: document.getElementById('db_password')?.value || '',
+                database: document.getElementById('db_name')?.value || ''
+            };
+            const res = await fetch('/api/database/test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            const dbt = data.database_test || {};
+            const text = [
+                `Ping: ${dbt.ping?.ok ? 'OK' : 'FAIL'} ${dbt.ping?.detail || ''}`,
+                `TCP: ${dbt.tcp?.ok ? 'OK' : 'FAIL'} ${dbt.tcp?.detail || ''}`,
+                `Login: ${dbt.db_login?.ok ? 'OK' : 'FAIL'} ${dbt.db_login?.detail || ''}`
+            ].join('\n');
+            if (resArea) {
+                resArea.className = `mt-2 p-2 rounded ${data.success ? 'bg-success text-white' : 'bg-danger text-white'}`;
+                resArea.innerText = text;
+            }
+        } catch (e) {
+            if (resArea) {
+                resArea.className = 'mt-2 bg-danger text-white p-2 rounded';
+                resArea.innerText = 'Request Failed: ' + e;
+            }
+        }
     }
 
     async function runSqlQuery(queryOverride) {
@@ -9346,8 +9382,7 @@
             const mcpPageSize = Number(mcpMarketPageState.pageSize || 24);
             
             const settled = await Promise.allSettled([
-                fetch('/api/systems/mcp/servers').catch(() => ({ ok: false })),
-                fetch(`/api/systems/mcp/market/smithery/search?page=${mcpPage}&page_size=${mcpPageSize}&query=${query}`).catch(() => ({ ok: false }))
+                fetch('/api/systems/mcp/servers').catch(() => ({ ok: false }))
             ]);
 
             async function safeJsonFromSettled(item, fallback = {}) {
@@ -9367,16 +9402,14 @@
             }
 
             const data = await safeJsonFromSettled(settled[0], {code: 1, data: []});
-            const marketCnData = await safeJsonFromSettled(settled[1], {code: 1, data: []});
             const servers = (data.code === 0 && Array.isArray(data.data)) ? data.data : [];
             mcpServersCache = servers;
-            const marketItemsCn = (marketCnData.code === 0 && Array.isArray(marketCnData.data)) ? marketCnData.data : [];
-            mcpMarketPageState.page = Number(marketCnData.page || mcpPage);
-            mcpMarketPageState.pageSize = Number(marketCnData.page_size || mcpPageSize);
-            mcpMarketPageState.total = Number(marketCnData.total || marketItemsCn.length || 0);
-            mcpMarketPageState.hasMore = !!marketCnData.has_more;
-            mcpMarketPageState.data = marketItemsCn;
-            const marketItems = [...marketItemsCn];
+            const marketItems = [];
+            mcpMarketPageState.page = mcpPage;
+            mcpMarketPageState.pageSize = mcpPageSize;
+            mcpMarketPageState.total = 0;
+            mcpMarketPageState.hasMore = false;
+            mcpMarketPageState.data = [];
             const body = document.getElementById('mcp-body');
             const badge = document.getElementById('mcp-count-badge');
             const marketBadge = document.getElementById('mcp-market-count-badge');
