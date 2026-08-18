@@ -508,12 +508,14 @@ def probe_database(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
             conn = sqlite3.connect(str(path))
             conn.execute("SELECT 1")
             conn.close()
-            result["ping"] = {"ok": True, "detail": "本地文件无需 ping"}
-            result["tcp"] = {"ok": True, "detail": str(path)}
-            result["db_login"] = {"ok": True, "detail": f"SQLite 可读写: {path}"}
+            result["mode"] = "local-file"
+            result["path"] = str(path)
+            result["file"] = {"ok": True, "detail": f"SQLite 文件可读写：{path}"}
             result["overall_ok"] = True
         except Exception as exc:
-            result["db_login"] = {"ok": False, "detail": str(exc)}
+            result["mode"] = "local-file"
+            result["path"] = str(path)
+            result["file"] = {"ok": False, "detail": str(exc)}
         return result
 
     if not host:

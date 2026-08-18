@@ -5574,11 +5574,14 @@
             });
             const data = await res.json();
             const dbt = data.database_test || {};
-            const text = [
-                `Ping: ${dbt.ping?.ok ? 'OK' : 'FAIL'} ${dbt.ping?.detail || ''}`,
-                `TCP: ${dbt.tcp?.ok ? 'OK' : 'FAIL'} ${dbt.tcp?.detail || ''}`,
-                `Login: ${dbt.db_login?.ok ? 'OK' : 'FAIL'} ${dbt.db_login?.detail || ''}`
-            ].join('\n');
+            const text = dbt.mode === 'local-file'
+                ? `${dbt.file?.ok ? 'SQLite 可用' : 'SQLite 失败'}：${dbt.file?.detail || dbt.path || ''}`
+                : [
+                    `引擎: ${dbt.engine || payload.engine}`,
+                    `Ping: ${dbt.ping?.ok ? 'OK' : 'FAIL'} ${dbt.ping?.detail || ''}`,
+                    `TCP: ${dbt.tcp?.ok ? 'OK' : 'FAIL'} ${dbt.tcp?.detail || ''}`,
+                    `登录: ${dbt.db_login?.ok ? 'OK' : 'FAIL'} ${dbt.db_login?.detail || ''}`
+                ].join('\n');
             if (resArea) {
                 resArea.className = `mt-2 p-2 rounded ${data.success ? 'bg-success text-white' : 'bg-danger text-white'}`;
                 resArea.innerText = text;
@@ -5738,10 +5741,11 @@
                   let statusText = '✅ Global Config Saved';
                   const dbt = result.database_test;
                   if (dbt) {
-                    const pingOk = !!(dbt.ping && dbt.ping.ok);
-                    const tcpOk = !!(dbt.tcp && dbt.tcp.ok);
-                    const loginOk = !!(dbt.db_login && dbt.db_login.ok);
-                    statusText += ` | DB Ping:${pingOk ? 'OK' : 'FAIL'} TCP:${tcpOk ? 'OK' : 'FAIL'} Login:${loginOk ? 'OK' : 'FAIL'}`;
+                    if (dbt.mode === 'local-file') {
+                      statusText += dbt.file?.ok ? ' | SQLite 文件可用' : ` | SQLite 失败: ${dbt.file?.detail || ''}`;
+                    } else {
+                      statusText += ` | Ping:${dbt.ping?.ok ? 'OK' : 'FAIL'} TCP:${dbt.tcp?.ok ? 'OK' : 'FAIL'} 登录:${dbt.db_login?.ok ? 'OK' : 'FAIL'}`;
+                    }
                   }
                   document.getElementById('cfg-status-msg').innerText = statusText;
                  setTimeout(() => document.getElementById('cfg-status-msg').innerText = '', 3000);
