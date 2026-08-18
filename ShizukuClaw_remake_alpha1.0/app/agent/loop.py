@@ -9,10 +9,7 @@ from app.persona_store import active_filename, build_system_prompt, list_persona
 from app.storage.adapter import get_storage
 
 MAX_TOOL_ROUNDS = 6
-IMAGE_HINT = (
-    "用户图片已经作为多模态输入发给当前主模型，请直接看图回答。"
-    "不要调用 read_file 去读 png/jpg/gif/webp。"
-)
+IMAGE_HINT = "不要调用 read_file 去读 png/jpg/gif/webp。"
 
 
 class AgentLoop:
@@ -50,12 +47,12 @@ class AgentLoop:
             prompt += "\n\n[娱乐模式] 不要执行危险系统操作，以当前人格正常聊天。"
         vision = model_supports_vision()
         if not vision:
-            prompt += "\n\n[视觉] 当前主模型不支持看图。不要调用 read_file 读取 png/jpg/gif/webp，用文字说明即可。"
+            prompt += "\n\n[视觉] 当前主模型不支持看图。不要调用 read_file 读取 png/jpg/gif/webp，也不要提 image.png。"
             if _collect_images(image, attachments):
                 history[-1]["content"] = (
-                    f"{_content_to_text(user_content)}\n\n[系统] 当前模型不支持图片输入，已忽略附件图片。"
+                    f"{_content_to_text(user_content)}\n\n当前模型不能看图，附件已忽略。"
                 )
-            history[:] = [_strip_images(item) for item in history]
+            history[:] = [_sanitize_history(item) for item in history]
         reply, traces, engine = self._run_loop(prompt, memory_text, history, current, vision=vision)
         history.append({"role": "assistant", "content": reply})
         self.storage.save_checkpoint(thread, current, {"messages": history[-40:]})
@@ -131,7 +128,7 @@ class AgentLoop:
                 ),
             }
         ]
-        outgoing = history[-12:] if vision else [_strip_images(item) for item in history[-12:]]
+        outgoing = history[-12:] if vision else [_sanitize_history(item) for item in history[-12:]]
         messages.extend(outgoing)
         traces: list[dict[str, Any]] = []
         for _ in range(MAX_TOOL_ROUNDS):
@@ -143,16 +140,19 @@ class AgentLoop:
                     temperature=0.4,
                 )
             except Exception as exc:
-                err = str(exc)
-                if (not vision) or ("does not support image" not in err.lower() and "image input" not in err.lower()):
+                err = str(exc).lower()
+                if "does not support image" not in err and "image input" not in err:
                     raise
-                messages[:] = [_strip_images(item) for item in messages]
-                completion = client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    tools=OPENAI_TOOLS,
-                    temperature=0.4,
-                )
+                messages[:] = [_sanitize_history(item) for item in messages]
+                try:
+                    completion = client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        tools=OPENAI_TOOLS,
+                        temperature=0.4,
+                    )
+                except Exception:
+                    return "当前模型不能看图，已跳过图片相关内容。请用文字描述。", traces, "no-vision"
             choice = completion.choices[0].message
             tool_calls = list(choice.tool_calls or [])
             if not tool_calls:
@@ -218,11 +218,23 @@ def _collect_images(image: str | None, attachments: list[dict[str, Any]] | None)
 
 def _strip_images(message: dict[str, Any]) -> dict[str, Any]:
     content = message.get("content")
-    if not isinstance(content, list):
-        return message
-    text = _content_to_text(content)
-    cleaned = dict(message)
-    cleaned["content"] = text or "（空消息）"
+    if isinstance(content, list):
+        cleaned = dict(message)
+        cleaned["content"] = _content_to_text(content) or "（空消息）"
+        return cleaned
+    if isinstance(content, str) and "data:image" in content:
+        cleaned = dict(message)
+        cleaned["content"] = "[图片已忽略]"
+        return cleaned
+    return message
+
+
+def _sanitize_history(message: dict[str, Any]) -> dict[str, Any]:
+    cleaned = _strip_images(message)
+    content = str(cleaned.get("content") or "")
+    if "does not support image" in content.lower() or "image input" in content.lower() or "__image_url__" in content:
+        cleaned = dict(cleaned)
+        cleaned["content"] = "（已忽略不支持的图片内容）"
     return cleaned
 
 

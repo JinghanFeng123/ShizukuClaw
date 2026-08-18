@@ -29,8 +29,12 @@ def tool_list_dir(path: str = ".") -> str:
         return f"不是目录: {path}"
     items = []
     for child in sorted(target.iterdir()):
-        mark = "/" if child.is_dir() else ""
-        items.append(f"{child.name}{mark}")
+        if child.is_dir():
+            items.append(f"{child.name}/")
+        elif child.suffix.lower() in IMAGE_SUFFIXES:
+            items.append(f"{child.name} [image, skip]")
+        else:
+            items.append(child.name)
     return "\n".join(items) or "(空目录)"
 
 
@@ -80,7 +84,7 @@ def tool_read_file(path: str) -> str | dict[str, Any]:
     try:
         text = target.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        return f'Cannot read "{target.name}" (binary file). Inform the user.'
+        return f"{target.name} 是二进制文件，已跳过。"
     if len(text) > 12000:
         return text[:12000] + "\n...[truncated]"
     return text
