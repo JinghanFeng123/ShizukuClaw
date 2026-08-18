@@ -437,11 +437,108 @@ async def work_mode_status() -> dict[str, Any]:
     }
 
 
+class WorkModeToggleRequest(BaseModel):
+    scope: str = "global"
+    enable: bool | None = None
+    password: str = ""
+
+
+class WorkModePasswordRequest(BaseModel):
+    password: str
+    current_password: str = ""
+
+
+class WorkModeOptionsRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    features: dict[str, Any] | None = None
+    chat_settings: dict[str, Any] | None = None
+    reply_policy: dict[str, Any] | None = None
+
+
+def _work_mode() -> dict[str, Any]:
+    return dict(settings.get("work_mode") or {})
+
+
+def _verify_password(password: str, hashed: str) -> bool:
+    return bool(hashed) and _hash_password(password or "") == hashed
+
+
+def _work_mode_password_hash() -> str:
+    wm = _work_mode()
+    return str(wm.get("password_hash") or (settings.get("security") or {}).get("level1_password_hash") or "")
+
+
 @app.post("/api/work_mode/toggle")
-async def work_mode_toggle() -> dict[str, Any]:
-    enabled = not bool(settings.get("work_mode", {}).get("enabled"))
-    settings.update({"work_mode": {"enabled": enabled}})
-    return {"success": True, "enabled": enabled}
+async def work_mode_toggle(body: WorkModeToggleRequest | None = None) -> dict[str, Any]:
+    payload = body or WorkModeToggleRequest()
+    scope = (payload.scope or "global").strip().lower()
+    wm = _work_mode()
+    if scope == "sandbox":
+        enable = not bool(wm.get("sandbox_enabled")) if payload.enable is None else bool(payload.enable)
+        settings.update({"work_mode": {**wm, "sandbox_enabled": enable}})
+        return {"success": True, "scope": "sandbox", "enabled": enable}
+
+    if scope not in {"global", ""}:
+        return JSONResponse({"success": False, "error": "scope 必须是 sandbox 或 global"}, status_code=400)
+
+    if payload.enable is None:
+        enable = not bool(wm.get("enabled"))
+    else:
+        enable = bool(payload.enable)
+
+    saved_hash = _work_mode_password_hash()
+    if not saved_hash:
+        return JSONResponse({"success": False, "error": "请先在设置中配置安全密码"}, status_code=400)
+    if not _verify_password(payload.password, saved_hash):
+        return JSONResponse({"success": False, "error": "安全密码错误"}, status_code=403)
+
+    settings.update({"work_mode": {**wm, "enabled": enable, "password_hash": saved_hash}})
+    return {"success": True, "scope": "global", "enabled": enable}
+
+
+@app.post("/api/work_mode/password")
+async def work_mode_password(body: WorkModePasswordRequest) -> dict[str, Any]:
+    password = body.password or ""
+    if len(password) < 6:
+        return JSONResponse({"success": False, "error": "安全密码至少 6 位"}, status_code=400)
+    wm = _work_mode()
+    existing = str(wm.get("password_hash") or "")
+    if existing and not _verify_password(body.current_password, existing):
+        return JSONResponse({"success": False, "error": "旧密码错误，无法修改"}, status_code=403)
+    settings.update({"work_mode": {**wm, "password_hash": _hash_password(password)}})
+    return {"success": True, "message": "安全密码已设置"}
+
+
+@app.post("/api/work_mode/options")
+async def work_mode_options(body: WorkModeOptionsRequest) -> dict[str, Any]:
+    wm = _work_mode()
+    features = {**(wm.get("features") or {}), **(body.features or {})}
+    chat_settings = {**(wm.get("chat_settings") or {}), **(body.chat_settings or {})}
+    reply_policy = {**(wm.get("reply_policy") or {}), **(body.reply_policy or {})}
+    settings.update(
+        {
+            "work_mode": {
+                **wm,
+                "features": features,
+                "chat_settings": chat_settings,
+                "reply_policy": reply_policy,
+            }
+        }
+    )
+    return {
+        "success": True,
+        "features": features,
+        "chat_settings": chat_settings,
+        "reply_policy": reply_policy,
+    }
+
+
+@app.post("/api/work_mode/reset_password_terminal")
+async def work_mode_reset_password_terminal() -> dict[str, Any]:
+    wm = _work_mode()
+    wm.pop("password_hash", None)
+    settings.update({"work_mode": wm})
+    return {"success": True, "message": "已清除工作模式密码，请重新设置。"}
 
 
 @app.exception_handler(Exception)

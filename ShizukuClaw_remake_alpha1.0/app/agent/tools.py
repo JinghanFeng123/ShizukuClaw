@@ -44,6 +44,28 @@ def encode_image_data_url(path: str | Path) -> str:
     return f"data:image/{suffix};base64,{encoded}"
 
 
+def model_supports_vision(model: str | None = None) -> bool:
+    from app.config import settings
+
+    name = str(model or (settings.get("llm") or {}).get("model") or "").lower()
+    vision_hints = (
+        "gpt-4o",
+        "gpt-4.1",
+        "gpt-4-turbo",
+        "gpt-4-vision",
+        "gpt-5",
+        "claude-3",
+        "claude-sonnet",
+        "claude-opus",
+        "gemini",
+        "qwen-vl",
+        "qwen2-vl",
+        "qwen2.5-vl",
+        "glm-4v",
+    )
+    return any(hint in name for hint in vision_hints)
+
+
 def tool_read_file(path: str) -> str | dict[str, Any]:
     target = _safe_path(path)
     if not target.exists():
@@ -51,6 +73,11 @@ def tool_read_file(path: str) -> str | dict[str, Any]:
     if not target.is_file():
         return f"不是文件: {path}"
     if target.suffix.lower() in IMAGE_SUFFIXES:
+        if not model_supports_vision():
+            return (
+                f'Cannot read "{target.name}" with the current text-only model. '
+                "Inform the user that this model does not support image input."
+            )
         return {
             "__image_url__": encode_image_data_url(target),
             "note": f"已加载图片 {target.name}，请直接用主模型多模态查看。",

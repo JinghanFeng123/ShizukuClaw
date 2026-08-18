@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from app.agent.tools import OPENAI_TOOLS, parse_tool_arguments, run_tool
+from app.agent.tools import OPENAI_TOOLS, model_supports_vision, parse_tool_arguments, run_tool
 from app.config import settings
 from app.persona_store import active_filename, build_system_prompt, list_personas, load_persona, persona_id
 from app.storage.adapter import get_storage
@@ -48,7 +48,15 @@ class AgentLoop:
             prompt += "\n\n[工作模式] 允许执行文件与工具操作，但仍按当前人格说话。"
         else:
             prompt += "\n\n[娱乐模式] 不要执行危险系统操作，以当前人格正常聊天。"
-        reply, traces, engine = self._run_loop(prompt, memory_text, history, current)
+        vision = model_supports_vision()
+        if not vision:
+            prompt += "\n\n[视觉] 当前主模型不支持看图。不要调用 read_file 读取 png/jpg/gif/webp，用文字说明即可。"
+            if _collect_images(image, attachments):
+                history[-1]["content"] = (
+                    f"{_content_to_text(user_content)}\n\n[系统] 当前模型不支持图片输入，已忽略附件图片。"
+                )
+            history[:] = [_strip_images(item) for item in history]
+        reply, traces, engine = self._run_loop(prompt, memory_text, history, current, vision=vision)
         history.append({"role": "assistant", "content": reply})
         self.storage.save_checkpoint(thread, current, {"messages": history[-40:]})
         self.storage.add_chat_record(current, "user", message or _content_to_text(user_content))
@@ -91,6 +99,7 @@ class AgentLoop:
         memory_text: str,
         history: list[dict[str, Any]],
         persona: str,
+        vision: bool = False,
     ) -> tuple[str, list[dict[str, Any]], str]:
         api_key = settings.get("llm", {}).get("api_key") or os.getenv("OPENAI_API_KEY") or ""
         if not api_key:
@@ -122,15 +131,28 @@ class AgentLoop:
                 ),
             }
         ]
-        messages.extend(history[-12:])
+        outgoing = history[-12:] if vision else [_strip_images(item) for item in history[-12:]]
+        messages.extend(outgoing)
         traces: list[dict[str, Any]] = []
         for _ in range(MAX_TOOL_ROUNDS):
-            completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=OPENAI_TOOLS,
-                temperature=0.4,
-            )
+            try:
+                completion = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=OPENAI_TOOLS,
+                    temperature=0.4,
+                )
+            except Exception as exc:
+                err = str(exc)
+                if (not vision) or ("does not support image" not in err.lower() and "image input" not in err.lower()):
+                    raise
+                messages[:] = [_strip_images(item) for item in messages]
+                completion = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=OPENAI_TOOLS,
+                    temperature=0.4,
+                )
             choice = completion.choices[0].message
             tool_calls = list(choice.tool_calls or [])
             if not tool_calls:
@@ -167,7 +189,7 @@ class AgentLoop:
                         "content": tool_text,
                     }
                 )
-                if image_url:
+                if image_url and vision:
                     messages.append(
                         {
                             "role": "user",
@@ -192,6 +214,16 @@ def _collect_images(image: str | None, attachments: list[dict[str, Any]] | None)
         if is_image and content:
             urls.append(str(content))
     return urls
+
+
+def _strip_images(message: dict[str, Any]) -> dict[str, Any]:
+    content = message.get("content")
+    if not isinstance(content, list):
+        return message
+    text = _content_to_text(content)
+    cleaned = dict(message)
+    cleaned["content"] = text or "（空消息）"
+    return cleaned
 
 
 def _content_to_text(content: Any) -> str:

@@ -215,8 +215,13 @@ async def security_status():
     return {
         "ok": True,
         "global_admin_enabled": bool(work.get("enabled")),
-        "level1_configured": bool(security.get("level1_password_hash")),
+        "level1_configured": bool(security.get("level1_password_hash") or work.get("password_hash")),
         "level2_configured": bool(security.get("level2_password_hash")),
+        "passwords_configured": bool(
+            security.get("initialized")
+            or security.get("level1_password_hash")
+            or work.get("password_hash")
+        ),
         "sandbox_mode": "local",
         "platform": "windows",
         "has_docker": False,
@@ -645,11 +650,7 @@ async def delete_subscription(subscription_id: str):
     return {"success": True}
 
 
-@router.post("/api/work_mode/password")
-@router.post("/api/work_mode/options")
-@router.post("/api/work_mode/reset_password_terminal")
-async def work_mode_stub():
-    return {"success": True}
+
 
 
 @router.get("/api/status")

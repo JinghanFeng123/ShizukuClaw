@@ -6186,7 +6186,23 @@
             openWorkModeModal('global_on');
             return;
         }
-        openWorkModeModal('global_off');
+        const password = await requestWorkModePassword('关闭全局工作模式');
+        if (password === null) return;
+        const res = await fetch('/api/work_mode/toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({scope: 'global', enable: false, password})
+        });
+        const data = await res.json();
+        if (!data.success) {
+            await showUnifiedActionModal({
+                title: '关闭失败',
+                message: data.error || '关闭失败',
+                level: 'danger'
+            });
+            return;
+        }
+        loadWorkModeStatus();
     }
 
     function openWorkModeModal(action) {
