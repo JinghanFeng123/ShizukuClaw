@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import html
 import os
 import platform
@@ -96,7 +97,29 @@ def _mcp():
 
 
 def _hash_password(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+    salt = os.urandom(16)
+    rounds = 200_000
+    digest = hashlib.pbkdf2_hmac("sha256", (value or "").encode("utf-8"), salt, rounds)
+    return f"pbkdf2${rounds}${salt.hex()}${digest.hex()}"
+
+
+def _verify_password(password: str, hashed: str) -> bool:
+    if not password or not hashed:
+        return False
+    if hashed.startswith("pbkdf2$"):
+        try:
+            _, rounds, salt_hex, digest_hex = hashed.split("$", 3)
+            digest = hashlib.pbkdf2_hmac(
+                "sha256",
+                password.encode("utf-8"),
+                bytes.fromhex(salt_hex),
+                int(rounds),
+            )
+            return hmac.compare_digest(digest.hex(), digest_hex)
+        except Exception:
+            return False
+    legacy = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(legacy, hashed)
 
 
 def _safe_psutil():
@@ -457,10 +480,6 @@ class WorkModeOptionsRequest(BaseModel):
 
 def _work_mode() -> dict[str, Any]:
     return dict(settings.get("work_mode") or {})
-
-
-def _verify_password(password: str, hashed: str) -> bool:
-    return bool(hashed) and _hash_password(password or "") == hashed
 
 
 def _work_mode_password_hash() -> str:

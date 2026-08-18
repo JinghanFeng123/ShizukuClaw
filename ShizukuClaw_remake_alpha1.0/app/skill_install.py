@@ -6,7 +6,7 @@ import shutil
 import zipfile
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 from app.paths import SKILLS_DIR, ensure_runtime_dirs
@@ -16,6 +16,54 @@ from app.skill_manager import get_skill_manager
 def _safe_id(raw: str) -> str:
     text = re.sub(r"[^A-Za-z0-9._-]+", "-", str(raw or "").strip())
     return text.strip("-_.") or "skill"
+
+
+def search_github_skills(query: str = "", page: int = 1, page_size: int = 24) -> dict[str, Any]:
+    page = max(int(page or 1), 1)
+    page_size = max(1, min(int(page_size or 24), 50))
+    terms = " ".join(part for part in [query.strip(), "SKILL.md", "topic:agent-skills"] if part)
+    url = (
+        "https://api.github.com/search/repositories"
+        f"?q={quote(terms)}&page={page}&per_page={page_size}&sort=stars&order=desc"
+    )
+    errors: list[str] = []
+    items: list[dict[str, Any]] = []
+    total = 0
+    try:
+        request = Request(url, headers={"User-Agent": "ShizukuClaw", "Accept": "application/vnd.github+json"})
+        with urlopen(request, timeout=20) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+        total = int(payload.get("total_count") or 0)
+        for repo in payload.get("items") or []:
+            items.append(
+                {
+                    "id": repo.get("full_name"),
+                    "name": repo.get("name"),
+                    "description": repo.get("description") or "",
+                    "external_url": repo.get("html_url") or "",
+                    "source": "github",
+                    "stars": repo.get("stargazers_count") or 0,
+                }
+            )
+    except Exception as exc:
+        errors.append(str(exc))
+    return {
+        "success": not errors,
+        "code": 0 if not errors else 1,
+        "items": items,
+        "data": items,
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "has_more": page * page_size < total,
+        "source": "github",
+        "message": "GitHub 仓库搜索结果" if not errors else f"GitHub 搜索失败: {errors[0]}",
+        "diagnostics": {
+            "cache": {"count": len(items), "age_seconds": 0},
+            "sources": [{"source": "github", "ok": not errors, "count": len(items)}],
+            "errors": errors,
+        },
+    }
 
 
 def install_from_payload(payload: dict[str, Any]) -> dict[str, Any]:

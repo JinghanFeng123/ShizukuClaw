@@ -73,15 +73,10 @@ def tool_read_file(path: str) -> str | dict[str, Any]:
     if not target.is_file():
         return f"不是文件: {path}"
     if target.suffix.lower() in IMAGE_SUFFIXES:
-        if not model_supports_vision():
-            return (
-                f'Cannot read "{target.name}" with the current text-only model. '
-                "Inform the user that this model does not support image input."
-            )
-        return {
-            "__image_url__": encode_image_data_url(target),
-            "note": f"已加载图片 {target.name}，请直接用主模型多模态查看。",
-        }
+        return (
+            f"{target.name} 是图片文件。当前主模型不能看图，"
+            "不要再调用 read_file 读取图片，请让用户用文字描述内容。"
+        )
     try:
         text = target.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -105,6 +100,15 @@ def tool_search_memory(query: str, persona: str = "companion") -> str:
     return "\n".join(f"- {item.get('content')}" for item in items)
 
 
+def tool_run_local_agent(agent: str, prompt: str) -> str:
+    from app.local_agents import run_agent
+
+    result = run_agent(agent, prompt)
+    if not result.get("success"):
+        return result.get("error") or "本机 Agent 执行失败"
+    return str(result.get("output") or "(无输出)")
+
+
 def tool_add_memory(content: str, persona: str = "companion") -> str:
     if not content.strip():
         return "记忆内容为空。"
@@ -118,6 +122,7 @@ TOOL_IMPLS: dict[str, Callable[..., str]] = {
     "write_file": tool_write_file,
     "search_memory": tool_search_memory,
     "add_memory": tool_add_memory,
+    "run_local_agent": tool_run_local_agent,
 }
 
 OPENAI_TOOLS = [
@@ -136,7 +141,7 @@ OPENAI_TOOLS = [
         "type": "function",
         "function": {
             "name": "read_file",
-            "description": "Read a workspace file. Images are loaded via the primary model's multimodal vision.",
+            "description": "Read a workspace text file. Do not use this on png/jpg/gif/webp images.",
             "parameters": {
                 "type": "object",
                 "properties": {"path": {"type": "string"}},
@@ -180,6 +185,21 @@ OPENAI_TOOLS = [
                 "type": "object",
                 "properties": {"content": {"type": "string"}},
                 "required": ["content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_local_agent",
+            "description": "Run a locally installed coding agent: opencode, hermes, codex, claude, openclaw, or astrbot.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "agent": {"type": "string", "description": "opencode | hermes | codex | claude | openclaw | astrbot"},
+                    "prompt": {"type": "string"},
+                },
+                "required": ["agent", "prompt"],
             },
         },
     },
