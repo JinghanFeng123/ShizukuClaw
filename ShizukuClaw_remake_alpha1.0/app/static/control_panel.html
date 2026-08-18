@@ -1613,7 +1613,7 @@
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div>
                                         <h5 class="card-title mb-1"><i class="fas fa-store me-2"></i>商店管理</h5>
-                                        <div class="small text-muted">统一管理 MCP 商店、Skill 商店和 Dify 模板市场。</div>
+                                        <div class="small text-muted">管理本机 MCP 与 GitHub Skill 市场。</div>
                                     </div>
                                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshUnifiedMarketStatus()"><i class="fas fa-sync me-1"></i>刷新状态</button>
                                 </div>
@@ -1633,27 +1633,15 @@
                                     <div class="col-lg-4">
                                         <div class="card h-100 border-light">
                                             <div class="card-body d-flex flex-column">
-                                                <h6 class="mb-1">Skill 商店（GitHub / SkillHub）</h6>
-                                                <div class="small text-muted mb-3">同步开源 Skill 条目并执行安装。</div>
+                                                <h6 class="mb-1">Skill 商店（GitHub）</h6>
+                                                <div class="small text-muted mb-3">同步 GitHub 开源 Skill 并安装到本机。</div>
                                                 <div class="d-flex gap-2 mt-auto flex-wrap">
                                                     <button class="btn btn-sm btn-success" type="button" onclick="openSkillMarketFromConfig()">打开面板</button>
                                                     <button class="btn btn-sm btn-outline-success" type="button" onclick="syncGithubSkillMarket(true, true)">同步 GitHub</button>
-                                                    <button class="btn btn-sm btn-outline-success" type="button" onclick="syncSkillhubMarket(true, true)">刷新本地 Skills</button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-lg-4">
-                                        <div class="card h-100 border-light">
-                                            <div class="card-body d-flex flex-column">
-                                                <h6 class="mb-1">Dify 模板市场</h6>
-                                                <div class="small text-muted mb-3">官方模板目录，便于快速生成插件骨架。</div>
-                                                <div class="d-flex gap-2 mt-auto flex-wrap">
-                                                    <button class="btn btn-sm btn-info text-white" type="button" onclick="openDifyMarketFromConfig()">打开面板</button>
-                                                    <button class="btn btn-sm btn-outline-info" type="button" onclick="loadDifyMarket(true)">同步模板</button>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1666,7 +1654,7 @@
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div>
                                         <h5 class="card-title mb-1"><i class="fas fa-terminal me-2"></i>本机 Agent</h5>
-                                        <div class="small text-muted">检测并调用本机已安装的 opencode / hermes / codex / claude / openclaw / astrbot，不再安装第三方 CLI。</div>
+                                        <div class="small text-muted">检测本机 PATH 中的 opencode / hermes / codex / claude / openclaw / astrbot。</div>
                                     </div>
                                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshCliManagerStatus()"><i class="fas fa-sync me-1"></i>检测全部</button>
                                 </div>
@@ -2123,34 +2111,6 @@
                             </table>
                         </div>
                     </div>
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-compass me-2 text-info"></i>Dify 知识库市场</span>
-                            <span class="badge bg-info" id="kb-dify-market-count">0</span>
-                        </div>
-                        <div class="card-body border-bottom py-2">
-                            <div class="row g-2 align-items-center">
-                                <div class="col-md-5">
-                                    <input id="kb-dify-market-search" class="form-control form-control-sm" placeholder="搜索 Dify 官方模板..." oninput="onKnowledgeDifyMarketSearchInput()">
-                                </div>
-                                <div class="col-md-7 d-flex gap-2 flex-wrap">
-                                    <button class="btn btn-sm btn-info text-white" type="button" onclick="loadKnowledgeDifyMarket(true)"><i class="fas fa-sync me-1"></i>同步模板</button>
-                                    <button class="btn btn-sm btn-outline-primary" type="button" onclick="installDifyCliOneClick()"><i class="fas fa-download me-1"></i>安装 Dify CLI</button>
-                                </div>
-                                <div class="col-12 d-flex align-items-center justify-content-between mt-1">
-                                    <div class="small text-muted" id="kb-dify-market-page-label">第 1 页</div>
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="kb dify market pager">
-                                        <button id="kb-dify-market-prev-btn" class="btn btn-outline-secondary" type="button" onclick="changeKnowledgeDifyMarketPage(-1)"><i class="fas fa-angle-left me-1"></i>上一页</button>
-                                        <button id="kb-dify-market-next-btn" class="btn btn-outline-secondary" type="button" onclick="changeKnowledgeDifyMarketPage(1)">下一页<i class="fas fa-angle-right ms-1"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div id="kb-dify-market-cards" class="row g-3">
-                                <div class="col-12 text-muted">点击“同步模板”加载 Dify 官方模板...</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -2252,7 +2212,7 @@
             <div class="d-flex justify-content-between align-items-start mb-4">
                 <div>
                     <h3 class="mb-1"><i class="fas fa-toolbox me-2"></i> skill 管理</h3>
-                    <p class="text-muted small mb-0">兼容 OpenClaw/Astr 风格 SKILL.md 目录，支持接入 GitHub 开源市场与 SkillHub 商店。</p>
+                    <p class="text-muted small mb-0">兼容 OpenClaw/Astr 风格 SKILL.md 目录，可从 GitHub 安装到本机。</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
                     <div class="plugin-toolbar-search">
@@ -2285,17 +2245,11 @@
                             <button class="btn btn-sm btn-outline-success" type="button" onclick="syncGithubSkillMarket()">
                                 <i class="fas fa-cloud-download-alt me-1"></i>同步 GitHub Skill 市场
                             </button>
-                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="installSkillhubCli()">
-                                <i class="fas fa-download me-1"></i>安装 SkillHub CLI
-                            </button>
-                            <button class="btn btn-sm btn-primary" type="button" onclick="syncSkillhubMarket()">
-                                <i class="fas fa-store me-1"></i>同步 SkillHub 商店
-                            </button>
                             <button class="btn btn-sm btn-outline-secondary" type="button" onclick="loadSkillMarketDiagnostics()">
                                 <i class="fas fa-stethoscope me-1"></i>市场诊断
                             </button>
                             <div class="input-group input-group-sm maxw-560">
-                                <span class="input-group-text">SkillHub ID / 仓库链接</span>
+                                <span class="input-group-text">仓库链接</span>
                                 <input id="cocoloop-skill-url-input" class="form-control" placeholder="例如: skill-name 或 https://github.com/owner/repo">
                                 <button class="btn btn-success" type="button" onclick="installCocoloopSkillByInput()">安装或配置</button>
                             </div>
@@ -2312,91 +2266,13 @@
                 </div>
                 <div class="card-body">
                     <div id="skills-market-cards" class="row g-3">
-                        <div class="col-12 text-muted">点击“同步 GitHub Skill 市场”或“同步 SkillHub 商店”加载条目...</div>
+                        <div class="col-12 text-muted">点击“同步 GitHub Skill 市场”加载条目...</div>
                     </div>
                 </div>
                 </div>
             </div>
 
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <span><i class="fas fa-compass me-2 text-primary"></i>Dify CLI 官方模板市场</span>
-                        <span class="badge bg-primary" id="dify-market-count-badge">0</span>
-                    </div>
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#dify-market-collapse" aria-expanded="false" aria-controls="dify-market-collapse">
-                        <i class="fas fa-chevron-down me-1"></i>展开/收起
-                    </button>
-                </div>
-                <div id="dify-market-collapse" class="collapse">
-                <div class="card-body border-bottom py-2">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-md-4">
-                            <input id="dify-market-search" class="form-control form-control-sm" placeholder="搜索 Dify 官方模板..." oninput="onDifyMarketSearchInput()">
-                        </div>
-                        <div class="col-md-8 d-flex gap-2 flex-wrap">
-                            <button class="btn btn-sm btn-primary" type="button" onclick="loadDifyMarket(true)">
-                                <i class="fas fa-store me-1"></i>同步官方模板
-                            </button>
-                            <button class="btn btn-sm btn-outline-info" type="button" onclick="installDifyCliOneClick()">
-                                <i class="fas fa-download me-1"></i>安装 Dify CLI
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary" type="button" onclick="checkDifyCliStatus(true)">
-                                <i class="fas fa-terminal me-1"></i>检测 Dify CLI
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="showDifyCliInstallGuide()">
-                                <i class="fas fa-book me-1"></i>官方安装指引
-                            </button>
-                            <div class="input-group input-group-sm maxw-560">
-                                <span class="input-group-text">模板 ID</span>
-                                <input id="dify-template-id-input" class="form-control" placeholder="例如: tool / agent-strategy / llm">
-                                <button class="btn btn-success" type="button" onclick="applyDifyTemplateByInput()">使用模板</button>
-                            </div>
-                        </div>
-                        <div class="col-12 d-flex align-items-center justify-content-between mt-1">
-                            <div class="small text-muted" id="dify-market-page-label">第 1 页</div>
-                            <div class="btn-group btn-group-sm" role="group" aria-label="dify market pager">
-                                <button id="dify-market-prev-btn" class="btn btn-outline-secondary" type="button" onclick="changeDifyMarketPage(-1)"><i class="fas fa-angle-left me-1"></i>上一页</button>
-                                <button id="dify-market-next-btn" class="btn btn-outline-secondary" type="button" onclick="changeDifyMarketPage(1)">下一页<i class="fas fa-angle-right ms-1"></i></button>
-                            </div>
-                        </div>
-                        <div class="col-12 small text-muted" id="dify-cli-status-text">Dify CLI 状态：未检测</div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div id="dify-market-cards" class="row g-3">
-                        <div class="col-12 text-muted">点击“同步官方模板”加载 Dify 官方模板列表...</div>
-                    </div>
-                </div>
-                </div>
-            </div>
-
-            <div class="modal fade" id="skillhub-install-modal" tabindex="-1" aria-labelledby="skillhub-install-modal-label" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-header">
-                            <div>
-                                <h5 class="modal-title mb-1" id="skillhub-install-modal-label">SkillHub CLI 安装</h5>
-                                <div class="small text-muted" id="skillhub-install-command-label">准备启动官方安装脚本</div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                                <span class="badge bg-secondary" id="skillhub-install-status-badge">等待开始</span>
-                                <span class="small text-muted" id="skillhub-install-job-id"></span>
-                            </div>
-                            <div class="border rounded bg-dark text-light p-3 install-log-box" id="skillhub-install-log">尚未开始安装...</div>
-                            <div class="small text-muted mt-2">安装日志会同步显示在后端控制台与日志文件中，关闭弹窗后仍会继续在后台运行。</div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
-                            <button type="button" class="btn btn-primary" onclick="closeSkillhubInstallToBackground()">关闭并转到后台</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            
             <div class="modal fade" id="agent-deploy-modal" tabindex="-1" aria-labelledby="agent-deploy-modal-label" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content border-0 shadow">
@@ -2423,32 +2299,7 @@
                 </div>
             </div>
 
-            <div class="modal fade" id="dify-install-modal" tabindex="-1" aria-labelledby="dify-install-modal-label" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-header">
-                            <div>
-                                <h5 class="modal-title mb-1" id="dify-install-modal-label">Dify CLI 安装</h5>
-                                <div class="small text-muted" id="dify-install-command-label">准备启动一键安装</div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                                <span class="badge bg-secondary" id="dify-install-status-badge">等待开始</span>
-                                <span class="small text-muted" id="dify-install-job-id"></span>
-                            </div>
-                            <div class="border rounded bg-dark text-light p-3 install-log-box" id="dify-install-log">尚未开始安装...</div>
-                            <div class="small text-muted mt-2">安装日志会同步显示在后端控制台，关闭弹窗后仍会继续在后台运行。</div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
-                            <button type="button" class="btn btn-primary" onclick="closeDifyInstallToBackground()">关闭并转到后台</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            
             <div class="modal fade" id="extra-cli-install-modal" tabindex="-1" aria-labelledby="extra-cli-install-modal-label" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content border-0 shadow">
@@ -4925,7 +4776,8 @@
         window.open(target, '_blank', 'noopener');
     }
 
-    function openDifyMarketFromConfig() {
+    function openDifyMarketFromConfig()  { return; }
+    function __removed_openDifyMarketFromConfig() {
         const tab = document.getElementById('v-skills-tab');
         if (tab) tab.click();
         setTimeout(() => loadDifyMarket(true), 0);
@@ -4935,8 +4787,7 @@
         try {
             await Promise.all([
                 loadMcpManager(),
-                loadSkillMarketCocoloop(false),
-                loadDifyMarket(false)
+                loadSkillMarketCocoloop(false)
             ]);
             toastr.success('商店状态已刷新');
         } catch (e) {
@@ -4965,7 +4816,8 @@
         }
     }
 
-    async function checkSkillhubCliStatus(showToast = false) {
+    async function checkSkillhubCliStatus(showToast = false)  { return; }
+    async function __removed_checkSkillhubCliStatus(showToast = false) {
         const statusEl = document.getElementById('cli-status-skillhub');
         try {
             const data = await fetchJsonSafe('/api/skills/market/skillhub/status');
@@ -5011,7 +4863,8 @@
         }
     }
 
-    async function openKnowledgeDifyMarketPanel() {
+    async function openKnowledgeDifyMarketPanel() { return; }
+    async function __removed_openKnowledgeDifyMarketPanel() {
         const tab = document.getElementById('v-skills-tab');
         if (tab) tab.click();
         setTimeout(() => {
@@ -7411,7 +7264,8 @@
         loadDifyMarket(false);
     }
 
-    async function checkDifyCliStatus(showToast = false) {
+    async function checkDifyCliStatus(showToast = false)  { return; }
+    async function __removed_checkDifyCliStatus(showToast = false) {
         const statusEl = document.getElementById('dify-cli-status-text');
         const managerStatusEl = document.getElementById('cli-status-dify');
         try {
@@ -7444,7 +7298,8 @@
         }
     }
 
-    async function showDifyCliInstallGuide() {
+    async function showDifyCliInstallGuide() { return; }
+    async function __removed_showDifyCliInstallGuide() {
         try {
             const res = await fetch('/api/systems/dify/market/cli/install', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({}) });
             const data = await res.json();
@@ -7575,7 +7430,8 @@
         });
     }
 
-    async function installDifyCliOneClick() {
+    async function installDifyCliOneClick()  { return; }
+    async function __removed_installDifyCliOneClick() {
         if (difyCliRequestInflight) {
             toastr.info('正在检查或安装 Dify CLI，请稍候...');
             return;
@@ -7765,7 +7621,8 @@
         }
     }
 
-    async function loadDifyMarket(showToast = true) {
+    async function loadDifyMarket(showToast = true)  { return; }
+    async function __removed_loadDifyMarket(showToast = true) {
         try {
             const query = encodeURIComponent(difyMarketPageState.query || '');
             const page = Number(difyMarketPageState.page || 1);
@@ -8034,9 +7891,7 @@
             const query = encodeURIComponent(skillMarketPageState.query || '');
             const page = Number(skillMarketPageState.page || 1);
             const pageSize = Number(skillMarketPageState.pageSize || 24);
-            const apiPath = skillMarketSource === 'skillhub'
-                ? `/api/skills/market/skillhub/search?page=${page}&page_size=${pageSize}&query=${query}`
-                : `/api/skills/market/github?page=${page}&page_size=${pageSize}&query=${query}`;
+            const apiPath = `/api/skills/market/github?page=${page}&page_size=${pageSize}&query=${query}`;
             const data = await fetchJsonSafe(apiPath);
             if (!data.success) throw new Error(data.error || 'load market failed');
             skillMarketCache = Array.isArray(data.items) ? data.items : [];
@@ -8047,9 +7902,9 @@
             skillMarketLastDiagnostics = data.diagnostics || null;
             renderSkillMarketCards(skillMarketCache);
             updateSkillMarketDiagnosticsText();
-            if (showToast) toastr.success(`已同步 ${skillMarketSource === 'skillhub' ? 'SkillHub 商店' : 'GitHub Skill 市场'}条目：${skillMarketCache.length}`);
+            if (showToast) toastr.success(`已同步 GitHub Skill：${skillMarketCache.length}`);
         } catch (e) {
-            if (showToast) toastr.error(`同步${skillMarketSource === 'skillhub' ? 'SkillHub 商店' : 'GitHub Skill 市场'}失败: ` + e.message);
+            if (showToast) toastr.error(`同步失败: ' + e.message);
         } finally {
             skillMarketSyncInflight = false;
         }
@@ -8082,9 +7937,7 @@
                 const query = encodeURIComponent(skillMarketPageState.query || '');
                 const page = Number(skillMarketPageState.page || 1);
                 const pageSize = Number(skillMarketPageState.pageSize || 24);
-                const apiPath = skillMarketSource === 'skillhub'
-                    ? `/api/skills/market/skillhub/search?page=${page}&page_size=${pageSize}&query=${query}`
-                    : `/api/skills/market/github?page=${page}&page_size=${pageSize}&query=${query}`;
+                const apiPath = `/api/skills/market/github?page=${page}&page_size=${pageSize}&query=${query}`;
                 const data = await fetchJsonSafe(apiPath);
                 if (data.success) {
                     skillMarketLastDiagnostics = data.diagnostics || skillMarketLastDiagnostics;
@@ -8134,7 +7987,8 @@
         await installCocoloopSkill(url);
     }
 
-    async function installSkillhubCli() {
+    async function installSkillhubCli()  { return; }
+    async function __removed_installSkillhubCli() {
         if (skillhubCliRequestInflight) {
             toastr.info('正在检查或安装 SkillHub CLI，请稍候...');
             return;
@@ -8267,7 +8121,7 @@
     }
 
     async function syncSkillhubMarket(resetPage = true, showToast = true) {
-        skillMarketSource = 'skillhub';
+        skillMarketSource = 'github';
         if (resetPage) skillMarketPageState.page = 1;
         await loadSkillMarketCocoloop(showToast);
     }

@@ -37,7 +37,7 @@ ShizukuClaw Remake Alpha 1.0 是对原项目的前后端分离重构，不是把
 这些仍在 `old/`，本仓库是重写后的可运行骨架：
 
 - 旧 Flask `web_server.py` 全量路由
-- 沙箱执行器、OneBot、TTS、SkillHub 市场
+- 沙箱执行器、OneBot、TTS
 - 旧的 `ai_chat_system.py` / `agent_sandbox.py` 大文件
 
 前端现有页面会打到的接口已经接上：聊天、记忆、配置、记录、监控、日志、诊断、安全初始化、`/v1/models`。

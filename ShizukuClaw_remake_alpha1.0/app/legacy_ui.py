@@ -483,7 +483,6 @@ def _agent_payload(agent_id: str = "") -> dict[str, Any]:
         "mode": "local-agent",
         "data": first or {"installed": False, "cli": "", "version": "", "mode": "local-agent"},
         "agents": agents,
-        "message": "已改为检测本机 Agent，不再安装第三方 CLI",
     }
 
 
@@ -495,19 +494,8 @@ async def list_local_agents():
 
 
 @router.get("/api/systems/cli/{cli_name}/status")
-@router.get("/api/systems/market/cli/{cli_name}/status")
-@router.get("/api/systems/mcp/market/smithery/status")
-@router.get("/api/skills/market/skillhub/status")
-@router.get("/api/systems/dify/market/cli/status")
 async def local_agent_status(cli_name: str = ""):
-    mapped = {
-        "smithery": "opencode",
-        "skillhub": "hermes",
-        "dify": "openclaw",
-        "kimi": "claude",
-        "minimax": "codex",
-    }.get((cli_name or "").lower(), cli_name)
-    return _agent_payload(mapped)
+    return _agent_payload(cli_name)
 
 
 @router.post("/api/systems/agents/{agent_id}/run")
@@ -516,39 +504,6 @@ async def run_local_agent(agent_id: str, payload: dict[str, Any] | None = None):
 
     data = payload or {}
     return run_agent(agent_id, str(data.get("prompt") or data.get("message") or "status"))
-
-
-@router.get("/api/systems/mcp/market/smithery/search")
-async def mcp_market(page: int = 1, page_size: int = 24, query: str = ""):
-    return {
-        "success": True,
-        "code": 0,
-        "data": [],
-        "items": [],
-        "page": page,
-        "page_size": page_size,
-        "total": 0,
-        "has_more": False,
-        "message": "Smithery 市场已移除，请用本机 MCP / Agent",
-    }
-
-
-@router.post("/api/systems/mcp/market/smithery/cli/install")
-@router.get("/api/systems/mcp/market/smithery/cli/install/jobs/{job_id}")
-@router.post("/api/systems/dify/market/cli/install")
-@router.get("/api/systems/dify/market/cli/install/jobs/{job_id}")
-@router.post("/api/skills/market/skillhub/cli/install")
-@router.get("/api/skills/market/skillhub/cli/install/jobs/{job_id}")
-async def removed_third_party_cli(job_id: str = "local"):
-    return {
-        "success": False,
-        "code": 1,
-        "installed": False,
-        "job_id": job_id,
-        "status": "removed",
-        "logs": ["第三方 CLI 安装已移除。请在本机安装 opencode / hermes / codex / claude / openclaw / astrbot。"],
-        "message": "已取消第三方 CLI 安装，改为调用本机 Agent",
-    }
 
 
 @router.post("/api/systems/knowledge/entries")
@@ -567,11 +522,9 @@ async def systems_personalities(payload: dict[str, Any] | None = None):
 
 
 @router.get("/api/skills/market/github")
-@router.get("/api/skills/market/skillhub/search")
-@router.get("/api/skills/market/cocoloop")
+@router.get("/api/skills/market/local")
 async def market_search(request: Request, page: int = 1, page_size: int = 24, query: str = ""):
-    path = request.url.path
-    if "github" in path:
+    if "github" in request.url.path:
         from app.skill_install import search_github_skills
 
         return search_github_skills(query, page, page_size)
@@ -602,7 +555,6 @@ async def market_search(request: Request, page: int = 1, page_size: int = 24, qu
         "total": len(items),
         "has_more": start + page_size < len(items),
         "source": "local",
-        "message": "SkillHub 已移除，这里只列本机 plugins/skills",
         "diagnostics": {
             "cache": {"count": len(items), "age_seconds": 0},
             "sources": [{"source": "local", "ok": True, "count": len(items)}],
@@ -611,23 +563,7 @@ async def market_search(request: Request, page: int = 1, page_size: int = 24, qu
     }
 
 
-@router.get("/api/systems/dify/market/search")
-async def dify_market(page: int = 1, page_size: int = 24, query: str = ""):
-    return {
-        "success": True,
-        "code": 0,
-        "data": [],
-        "page": page,
-        "page_size": page_size,
-        "total": 0,
-        "has_more": False,
-        "message": "Dify 市场已移除",
-    }
-
-
 @router.post("/api/skills/market/github/install")
-@router.post("/api/skills/market/cocoloop/install")
-@router.post("/api/skills/market/skillhub/install")
 @router.post("/api/skills/market/agent-deploy")
 async def market_install(payload: dict[str, Any]):
     result = install_from_payload(payload)

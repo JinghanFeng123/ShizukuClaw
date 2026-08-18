@@ -46,10 +46,22 @@ def _which(name: str) -> str:
     return ""
 
 
+def _run(cmd: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+        check=False,
+    )
+
+
 def _version(exe: str) -> str:
     for args in ([exe, "--version"], [exe, "-V"], [exe, "version"]):
         try:
-            proc = subprocess.run(args, capture_output=True, text=True, timeout=4, check=False)
+            proc = _run(args, 4)
             text = (proc.stdout or proc.stderr or "").strip().splitlines()
             if text:
                 return text[0][:120]
@@ -88,7 +100,7 @@ def run_agent(agent_id: str, prompt: str, timeout: int = 60) -> dict[str, Any]:
         return {"success": False, "error": f"{agent['name']} 未在本机 PATH 中找到"}
     cmd = [agent["path"], *agent["run_args"], prompt]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
+        proc = _run(cmd, timeout)
     except subprocess.TimeoutExpired:
         return {"success": False, "error": f"{agent['name']} 执行超时"}
     except Exception as exc:
