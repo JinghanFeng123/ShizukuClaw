@@ -5933,8 +5933,9 @@
             if (toggle) toggle.checked = sandboxTtsEnabled;
             if (sandboxTtsEnabled) {
                 try {
-                    const persona = sandboxPersonaFilename ? `?persona_filename=${encodeURIComponent(sandboxPersonaFilename)}` : '';
-                    await fetch(`/api/tts/status${persona}&autostart=1`);
+                    const params = new URLSearchParams({ autostart: '1' });
+                    if (sandboxPersonaFilename) params.set('persona_filename', sandboxPersonaFilename);
+                    await fetch(`/api/tts/status?${params.toString()}`);
                 } catch (_) {}
             }
             if (statusEl) {

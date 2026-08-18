@@ -335,9 +335,11 @@ async def set_tts_settings(payload: dict[str, Any] | None = None):
 
 
 @router.get("/api/tts/status")
-async def tts_status():
+async def tts_status(autostart: int = 0, persona_filename: str = ""):
     result = _tts_settings()
     result["service_online"] = False
+    result["autostart"] = bool(autostart)
+    result["persona_filename"] = persona_filename or ""
     return result
 
 
