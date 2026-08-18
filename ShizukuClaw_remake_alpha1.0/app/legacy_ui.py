@@ -447,6 +447,14 @@ async def get_mcp_server(server_id: str):
     return JSONResponse({"success": False, "code": 1, "message": "not found"}, status_code=404)
 
 
+@router.put("/api/systems/mcp/servers/{server_id}")
+async def update_mcp_server(server_id: str, payload: dict[str, Any] | None = None):
+    server = get_mcp_manager().update(server_id, payload or {})
+    if not server:
+        return JSONResponse({"success": False, "code": 1, "message": "not found"}, status_code=404)
+    return {"success": True, "code": 0, "message": "Server updated", "data": server.__dict__}
+
+
 @router.delete("/api/systems/mcp/servers/{server_id}")
 async def delete_mcp_server(server_id: str):
     ok = get_mcp_manager().delete(server_id)

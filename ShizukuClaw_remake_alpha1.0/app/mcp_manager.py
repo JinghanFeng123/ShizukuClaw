@@ -18,6 +18,7 @@ class MCPServer:
     command: str = ""
     args: list[str] = field(default_factory=list)
     url: str = ""
+    headers: dict[str, str] = field(default_factory=dict)
     enabled: bool = True
     status: str = "disconnected"
     tools: list[str] = field(default_factory=list)
@@ -84,16 +85,36 @@ class MCPManager:
                 tools.append({"server": server.id, "name": tool, "status": server.status})
         return tools
 
+    def _normalize(self, data: dict[str, Any]) -> dict[str, Any]:
+        payload = dict(data)
+        if payload.get("url") is None:
+            payload["url"] = ""
+        if payload.get("command") is None:
+            payload["command"] = ""
+        if payload.get("args") is None:
+            payload["args"] = []
+        if payload.get("headers") is None:
+            payload["headers"] = {}
+        payload["updated_at"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+        return payload
+
     def upsert(self, data: dict[str, Any]) -> MCPServer:
         server_id = str(data.get("id") or data.get("name") or f"mcp-{len(self._servers)+1}")
         current = self._servers.get(server_id)
         merged = asdict(current) if current else {}
-        merged.update({k: v for k, v in data.items() if v is not None})
+        merged.update({k: v for k, v in self._normalize(data).items() if k != "id" or v})
         merged["id"] = server_id
         server = MCPServer(**{k: v for k, v in merged.items() if k in MCPServer.__dataclass_fields__})
         self._servers[server.id] = server
         self._persist()
         return server
+
+    def update(self, server_id: str, data: dict[str, Any]) -> MCPServer | None:
+        if server_id not in self._servers:
+            return None
+        payload = dict(data)
+        payload["id"] = server_id
+        return self.upsert(payload)
 
     def delete(self, server_id: str) -> bool:
         if server_id not in self._servers:
