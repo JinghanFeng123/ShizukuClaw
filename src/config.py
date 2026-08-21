@@ -2,15 +2,12 @@ import os
 import yaml
 from dataclasses import dataclass, field
 
-
 @dataclass
 class Config:
-    # UML 定义的三个核心字段
-    llm_provider: str = "openai"
-    model_name: str = "gpt-4o"
-    max_rounds: int = 5
-
-    # 扩展的工程化字段
+    # UML 定义的三个核心字段, 此处系初始化默认值
+    llm_provider: str = "openai"  # 默认值
+    model_name: str = "gpt-3.5-turbo"  # 默认值
+    max_rounds: int = 10  # 默认值
     api_key: str = ""
     system_prompt: str = "You are a helpful assistant."
     temperature: float = 0.7
@@ -23,6 +20,7 @@ class Config:
         """
         self._load_from_yaml(config_path)
         self._load_from_env()
+
 
     def _load_from_yaml(self, path: str):
         try:
@@ -47,3 +45,12 @@ class Config:
         """优先从环境变量读取敏感信息"""
         # 假设环境变量名为 OPENAI_API_KEY
         self.api_key = os.getenv("OPENAI_API_KEY", "")
+
+
+
+if __name__ == "__main__":
+    config = Config()
+    print(config.llm_provider)
+    print(config.model_name)
+    print(config.max_rounds)
+    print(config.api_key)

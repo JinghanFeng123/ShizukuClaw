@@ -12,6 +12,6 @@ class ToolRegistry:
         self.tools[tool.name] = tool
 
     def execute(self, name: str, args: dict) -> str:
-        if name in self.tools:
+        if name not in self.tools:
             raise  ValueError(f"Tool {name} not found")
         return self.tools[name].run(args)
