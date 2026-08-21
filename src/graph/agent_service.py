@@ -1,6 +1,6 @@
+from src.config import Config  # 假设你有一个加载配置的模块
 from src.graph.agent_graph import AgentGraph
 from src.memory.memory_store import MemoryStore
-from src.config import Config  # 假设你有一个加载配置的模块
 
 
 class AgentService:

@@ -1,8 +1,11 @@
-import os
 import hashlib
-from utils.logger_handler import logger
+import os
+
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_core.documents import Document
+
+from utils.logger_handler import logger
+
 
 def get_file_md5_hex(file_path: str):
     if not os.path.exists(file_path):

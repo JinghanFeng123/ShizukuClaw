@@ -1,10 +1,8 @@
-import datetime
 import logging
-import sys
-from time import asctime
-from datetime import datetime
-from utils.path_tool import get_abs_path
 import os
+from datetime import datetime
+
+from utils.path_tool import get_abs_path
 
 # 日志存到目录
 LOG_ROOT = get_abs_path("logs")

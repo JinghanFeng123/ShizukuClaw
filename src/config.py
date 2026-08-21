@@ -1,6 +1,8 @@
 import os
+from dataclasses import dataclass
+
 import yaml
-from dataclasses import dataclass, field
+
 
 @dataclass
 class Config:
@@ -24,7 +26,7 @@ class Config:
 
     def _load_from_yaml(self, path: str):
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 data = yaml.safe_load(f)
 
             if data:

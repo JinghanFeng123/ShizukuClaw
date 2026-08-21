@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import Any
+
 
 @dataclass
 class State:
@@ -11,8 +12,8 @@ class State:
     """
     messages: list[str] = field(default_factory=list)
     intent: str = ""
-    tool_result: List[str] = field(default_factory=list)
-    memory: Dict[str, Any] = field(default_factory=dict)
+    tool_result: list[str] = field(default_factory=list)
+    memory: dict[str, Any] = field(default_factory=dict)
 
     def add_message(self, msg: str):
         self.messages.append(msg)

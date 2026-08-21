@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List, Any
 
 
 class LLMClient(ABC):
@@ -8,7 +7,7 @@ class LLMClient(ABC):
     """
 
     @abstractmethod
-    def chat(self, messages: List[dict]) -> str:
+    def chat(self, messages: list[dict]) -> str:
         """
         对话方法
         :param messages: 消息列表

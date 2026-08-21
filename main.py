@@ -1,7 +1,6 @@
-from src.llm import LLMClient
-from src.llm import OpenAILLMClient
+
+from src.llm import LLMClient, OpenAILLMClient
 from src.llm.local_llm_client import LocalLLMClient
-from typing import List
 
 # --- 测试代码 ---
 if __name__ == "__main__":
@@ -16,7 +15,7 @@ if __name__ == "__main__":
     print(local_client.chat([{"role": "user", "content": "你好"}]))
 
     # 测试多态性：统一使用 LLMClient 类型调用
-    clients: List[LLMClient] = [openai_client, local_client]
+    clients: list[LLMClient] = [openai_client, local_client]
     for client in clients:
         # 无论底层是 OpenAI 还是 Local，都可以安全调用 chat
         print(f"调用结果: {client.chat([])}")
